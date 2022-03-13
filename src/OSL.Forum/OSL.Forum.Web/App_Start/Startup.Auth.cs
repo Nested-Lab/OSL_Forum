@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Web.Mvc;
+using Autofac;
+using Autofac.Integration.Mvc;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin;
@@ -11,6 +14,9 @@ namespace OSL.Forum.Web
 {
     public partial class Startup
     {
+        public static ILifetimeScope AutofacContainer { get; private set; }
+        public static string connectionStringName = "DefaultConnection";
+
         // For more information on configuring authentication, please visit https://go.microsoft.com/fwlink/?LinkId=301864
         public void ConfigureAuth(IAppBuilder app)
         {
@@ -34,7 +40,7 @@ namespace OSL.Forum.Web
                         validateInterval: TimeSpan.FromMinutes(30),
                         regenerateIdentity: (manager, user) => user.GenerateUserIdentityAsync(manager))
                 }
-            });            
+            });
             app.UseExternalSignInCookie(DefaultAuthenticationTypes.ExternalCookie);
 
             // Enables the application to temporarily store user information when they are verifying the second factor in the two-factor authentication process.
@@ -63,6 +69,22 @@ namespace OSL.Forum.Web
             //    ClientId = "",
             //    ClientSecret = ""
             //});
+
+            var builder = new ContainerBuilder();
+
+            //Registering Dependency
+            builder.RegisterControllers(typeof(MvcApplication).Assembly);
+            builder.RegisterFilterProvider();
+            builder.RegisterSource(new ViewRegistrationSource());
+
+            //Modules
+            builder.RegisterModule(new WebModule());
+
+            var container = builder.Build();
+            AutofacContainer = container;
+
+            DependencyResolver.SetResolver(new AutofacDependencyResolver(container));
+
         }
     }
 }
